@@ -38,11 +38,12 @@ using apollo::routing::RoutingResponse;
 
 bool PlanningComponent::Init() {
   if (FLAGS_use_navigation_mode) {
-    planning_base_ = std::make_unique<NaviPlanning>();
+    planning_base_ = std::make_unique<NaviPlanning>(); //RTK planner
   } else {
-    planning_base_ = std::make_unique<OnLanePlanning>();
+    planning_base_ = std::make_unique<OnLanePlanning>(); //all the planner merge into public planner(on lane planner)
   }
 
+//系统各种配置，接收发送的topic都放到这个函数里面
   CHECK(apollo::cyber::common::GetProtoFromFile(FLAGS_planning_config_file,
                                                 &config_))
       << "failed to load planning config file " << FLAGS_planning_config_file;
@@ -51,7 +52,7 @@ bool PlanningComponent::Init() {
   if (FLAGS_use_sim_time) {
     Clock::SetMode(Clock::MOCK);
   }
-  routing_reader_ = node_->CreateReader<RoutingResponse>(
+  routing_reader_ = node_->CreateReader<RoutingResponse>( //接收routing的结果，
       FLAGS_routing_response_topic,
       [this](const std::shared_ptr<RoutingResponse>& routing) {
         AINFO << "Received routing data: run routing callback."
@@ -59,7 +60,7 @@ bool PlanningComponent::Init() {
         std::lock_guard<std::mutex> lock(mutex_);
         routing_.CopyFrom(*routing);
       });
-  traffic_light_reader_ = node_->CreateReader<TrafficLightDetection>(
+  traffic_light_reader_ = node_->CreateReader<TrafficLightDetection>(//接受交通信号灯的结果
       FLAGS_traffic_light_detection_topic,
       [this](const std::shared_ptr<TrafficLightDetection>& traffic_light) {
         ADEBUG << "Received traffic light data: run traffic light callback.";
@@ -75,7 +76,7 @@ bool PlanningComponent::Init() {
           std::lock_guard<std::mutex> lock(mutex_);
           pad_message_.CopyFrom(*pad_message);
         });
-    relative_map_reader_ = node_->CreateReader<MapMsg>(
+    relative_map_reader_ = node_->CreateReader<MapMsg>(//接收相对地图信息
         FLAGS_relative_map_topic,
         [this](const std::shared_ptr<MapMsg>& map_message) {
           ADEBUG << "Received relative map data: run relative map callback.";
@@ -84,14 +85,15 @@ bool PlanningComponent::Init() {
         });
   }
   planning_writer_ =
-      node_->CreateWriter<ADCTrajectory>(FLAGS_planning_trajectory_topic);
+      node_->CreateWriter<ADCTrajectory>(FLAGS_planning_trajectory_topic); //发送trajectory topic
 
   rerouting_writer_ =
-      node_->CreateWriter<RoutingRequest>(FLAGS_routing_request_topic);
+      node_->CreateWriter<RoutingRequest>(FLAGS_routing_request_topic); //发送routing request topic
 
   return true;
 }
 
+//planning 主要的处理函数
 bool PlanningComponent::Proc(
     const std::shared_ptr<prediction::PredictionObstacles>&
         prediction_obstacles,
@@ -104,7 +106,7 @@ bool PlanningComponent::Proc(
     Clock::SetNowInSeconds(localization_estimate->header().timestamp_sec());
   }
   // check and process possible rerouting request
-  CheckRerouting();
+  CheckRerouting(); //查看是否需要重新routing，如果需要的话，通过write发送出去
 
   // process fused input data
   local_view_.prediction_obstacles = prediction_obstacles;
@@ -113,7 +115,7 @@ bool PlanningComponent::Proc(
   {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!local_view_.routing ||
-        hdmap::PncMap::IsNewRouting(*local_view_.routing, routing_)) {
+        hdmap::PncMap::IsNewRouting(*local_view_.routing, routing_)) { //local view中存储的是当前的routing
       local_view_.routing =
           std::make_shared<routing::RoutingResponse>(routing_);
     }
@@ -125,6 +127,7 @@ bool PlanningComponent::Proc(
     local_view_.relative_map = std::make_shared<MapMsg>(relative_map_);
   }
 
+  //输入包括定位估计信息，底盘信息，地图信息，相对地图信息，路由信息，
   if (!CheckInput()) {
     AERROR << "Input check failed";
     return false;
@@ -154,9 +157,10 @@ void PlanningComponent::CheckRerouting() {
   common::util::FillHeader(node_->Name(), rerouting->mutable_routing_request());
   rerouting->set_need_rerouting(false);
   rerouting_writer_->Write(
-      std::make_shared<RoutingRequest>(rerouting->routing_request()));
+      std::make_shared<RoutingRequest>(rerouting->routing_request())); //如果需要重新规划，通过write发出去？
 }
 
+//输入包括定位估计信息，底盘信息，地图信息，相对地图信息，路由信息，
 bool PlanningComponent::CheckInput() {
   ADCTrajectory trajectory_pb;
   auto* not_ready = trajectory_pb.mutable_decision()
@@ -186,7 +190,7 @@ bool PlanningComponent::CheckInput() {
   if (not_ready->has_reason()) {
     AERROR << not_ready->reason() << "; skip the planning cycle.";
     common::util::FillHeader(node_->Name(), &trajectory_pb);
-    planning_writer_->Write(std::make_shared<ADCTrajectory>(trajectory_pb));
+    planning_writer_->Write(std::make_shared<ADCTrajectory>(trajectory_pb)); //难道是上一次轨迹？
     return false;
   }
   return true;
