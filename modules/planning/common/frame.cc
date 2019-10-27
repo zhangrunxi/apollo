@@ -49,9 +49,11 @@ using apollo::common::math::Polygon2d;
 using apollo::common::time::Clock;
 using apollo::prediction::PredictionObstacles;
 
+
 FrameHistory::FrameHistory()
     : IndexedQueue<uint32_t, Frame>(FLAGS_max_history_frame_num) {}
 
+//frame的构造函数什么也没做
 Frame::Frame(uint32_t sequence_num)
     : sequence_num_(sequence_num),
       monitor_logger_buffer_(common::monitor::MonitorMessageItem::PLANNING) {}
@@ -73,10 +75,12 @@ Frame::Frame(uint32_t sequence_num, const LocalView &local_view,
     : Frame(sequence_num, local_view, planning_start_point, vehicle_state,
             nullptr) {}
 
+//获取规划起始点
 const common::TrajectoryPoint &Frame::PlanningStartPoint() const {
   return planning_start_point_;
 }
 
+//获取车辆状态
 const common::VehicleState &Frame::vehicle_state() const {
   return vehicle_state_;
 }
@@ -140,6 +144,7 @@ std::list<ReferenceLineInfo> *Frame::mutable_reference_line_info() {
   return &reference_line_info_;
 }
 
+//这个是怎么设置优先级的？
 void Frame::UpdateReferenceLinePriority(
     const std::map<std::string, uint32_t> &id_to_priority) {
   for (const auto &pair : id_to_priority) {
@@ -156,6 +161,7 @@ void Frame::UpdateReferenceLinePriority(
   }
 }
 
+//
 bool Frame::CreateReferenceLineInfo(
     const std::list<ReferenceLine> &reference_lines,
     const std::list<hdmap::RouteSegments> &segments) {
@@ -163,6 +169,8 @@ bool Frame::CreateReferenceLineInfo(
   auto ref_line_iter = reference_lines.begin();
   auto segments_iter = segments.begin();
   while (ref_line_iter != reference_lines.end()) {
+
+    //离目的地的距离是在segment里面判断的
     if (segments_iter->StopForDestination()) {
       is_near_destination_ = true;
     }

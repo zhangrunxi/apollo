@@ -88,6 +88,7 @@ void EgoInfo::CalculateFrontObstacleClearDistance(
                          vehicle_state_.heading(), impact_region_length,
                          param.width() + buffer);
 
+//此处的障碍物应该是全部的障碍物，没有分前后左右
   for (const auto& obstacle : obstacles) {
     if (obstacle->IsVirtual() ||
         !ego_front_region.HasOverlap(obstacle->PerceptionBoundingBox())) {
@@ -98,6 +99,7 @@ void EgoInfo::CalculateFrontObstacleClearDistance(
                       obstacle->PerceptionBoundingBox().center()) -
                   ego_box_.diagonal() / 2.0;
 
+//计算距离最近的障碍物距离
     if (front_clear_distance_ < 0.0 || dist < front_clear_distance_) {
       front_clear_distance_ = dist;
     }

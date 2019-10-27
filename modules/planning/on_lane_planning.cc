@@ -182,8 +182,19 @@ void OnLanePlanning::GenerateStopTrajectory(ADCTrajectory* ptr_trajectory_pb) {
 
 void OnLanePlanning::RunOnce(const LocalView& local_view,
                              ADCTrajectory* const ptr_trajectory_pb) {
+/** 
+local view包括
+1. 预测障碍物
+2. 底盘状态
+3. 定位信息
+4. 交通灯信息
+5. 路由信息
+6. 相对地图信息 
+*/
   local_view_ = local_view;
-  const double start_timestamp = Clock::NowInSeconds();
+
+  //这里的两个时间分别是干什么的？？
+  const double start_timestamp = Clock::NowInSeconds(); 
   const double start_system_timestamp =
       std::chrono::duration<double>(
           std::chrono::system_clock::now().time_since_epoch())
@@ -196,14 +207,36 @@ void OnLanePlanning::RunOnce(const LocalView& local_view,
   // chassis
   ADEBUG << "Get chassis:" << local_view_.chassis->DebugString();
 
+//更新定位信息和底盘信息
   Status status = VehicleStateProvider::Instance()->Update(
       *local_view_.localization_estimate, *local_view_.chassis);
-
+/* 
+vehicle state包括：
+message VehicleState {
+  optional double x = 1 [default = 0.0];
+  optional double y = 2 [default = 0.0];
+  optional double z = 3 [default = 0.0];
+  optional double timestamp = 4 [default = 0.0];
+  optional double roll = 5 [default = 0.0];
+  optional double pitch = 6 [default = 0.0];
+  optional double yaw = 7 [default = 0.0];
+  optional double heading = 8 [default = 0.0];
+  optional double kappa = 9 [default = 0.0];
+  optional double linear_velocity = 10 [default = 0.0];
+  optional double angular_velocity = 11 [default = 0.0];
+  optional double linear_acceleration = 12 [default = 0.0];
+  optional apollo.canbus.Chassis.GearPosition gear = 13;
+  optional apollo.canbus.Chassis.DrivingMode driving_mode = 14;
+  optional apollo.localization.Pose pose = 15;
+}
+  主要是车辆的定位信息，以及底盘信息
+*/
   VehicleState vehicle_state =
       VehicleStateProvider::Instance()->vehicle_state();
   const double vehicle_state_timestamp = vehicle_state.timestamp();
   DCHECK_GE(start_timestamp, vehicle_state_timestamp);
 
+//判断状态有效性
   if (!status.ok() || !util::IsVehicleStateValid(vehicle_state)) {
     std::string msg(
         "Update VehicleStateProvider failed "
@@ -221,17 +254,21 @@ void OnLanePlanning::RunOnce(const LocalView& local_view,
     return;
   }
 
+//如果预测满足要求，就把当前的车辆的状态更改为预测后的状态，消除规划耗时的影响
   if (FLAGS_estimate_current_vehicle_state &&
       start_timestamp - vehicle_state_timestamp <
           FLAGS_message_latency_threshold) {
     vehicle_state = AlignTimeStamp(vehicle_state, start_timestamp);
   }
 
+//每个循环都会通过local view的更新获取到最新的routing信息，本地也保存有最后的routing信息
   if (util::IsDifferentRouting(last_routing_, *local_view_.routing)) {
     last_routing_ = *local_view_.routing;
     PlanningContext::Instance()->mutable_planning_status()->Clear();
     reference_line_provider_->UpdateRoutingResponse(*local_view_.routing);
   }
+
+//reference line中有自己的路由信息和vehicle state 
 
   // Update reference line provider and reset pull over if necessary
   reference_line_provider_->UpdateVehicleState(vehicle_state);
@@ -253,10 +290,12 @@ void OnLanePlanning::RunOnce(const LocalView& local_view,
   status = InitFrame(frame_num, stitching_trajectory.back(), vehicle_state);
 
   if (status.ok()) {
+    //ego info会根据定位信息和车辆模型计算当前车辆的框，并根据此框计算到障碍物的最近距离
     EgoInfo::Instance()->CalculateFrontObstacleClearDistance(
         frame_->obstacles());
   }
 
+//思考下调试的设计
   if (FLAGS_enable_record_debug) {
     frame_->RecordInputDebug(ptr_trajectory_pb->mutable_debug());
   }
@@ -291,6 +330,7 @@ void OnLanePlanning::RunOnce(const LocalView& local_view,
     return;
   }
 
+//交通规则是在这里设置
   for (auto& ref_line_info : *frame_->mutable_reference_line_info()) {
     TrafficDecider traffic_decider;
     traffic_decider.Init(traffic_rule_configs_);
