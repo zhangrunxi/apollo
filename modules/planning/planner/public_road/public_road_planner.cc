@@ -42,11 +42,15 @@ Status PublicRoadPlanner::Init(const PlanningConfig& config) {
   return Status::OK();
 }
 
+//通过这里调用规划，之前的部分都是准备工作，plan才是正儿八经的规划
+//输入: 1. 规划起始点 2. frame 3. 已经计算出来的路径？这个有什么用途？
 Status PublicRoadPlanner::Plan(const TrajectoryPoint& planning_start_point,
                                Frame* frame,
                                ADCTrajectory* ptr_computed_trajectory) {
   DCHECK_NOTNULL(frame);
+  //第一步，更新scenario
   scenario_manager_.Update(planning_start_point, *frame);
+
   scenario_ = scenario_manager_.mutable_scenario();
   auto result = scenario_->Process(planning_start_point, frame);
 

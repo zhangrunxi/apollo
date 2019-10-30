@@ -120,7 +120,7 @@ Stage::StageStatus LaneFollowStage::Process(
       reference_line_info.SetDrivable(false);
       break;
     }
-
+//每一步分plan都是包含在stage中的，因为不同的stage或者不同的scenario，所使用的plan都是不一样的
     auto cur_status =
         PlanOnReferenceLine(planning_start_point, frame, &reference_line_info);
 

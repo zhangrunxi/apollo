@@ -168,6 +168,8 @@ ScenarioConfig::ScenarioType ScenarioManager::SelectPullOverScenario(
          << "] destination_s[" << dest_sl.s() << "] adc_front_edge_s["
          << adc_front_edge_s << "]";
 
+//如果当前车辆到终点的距离小于开始进入靠边停车的距离，并且大于最小允许的靠边停车操作的距离，并且reference line数量为1 时
+//可以进入靠边停车场景，至于reference line 为1 ，是因为要确保当前没有更换车道。所以更换车道的时候应该是有至少两条refernece line
   bool pull_over_scenario =
       (frame.reference_line_info().size() == 1 &&  // NO, while changing lane
        adc_distance_to_dest >=
@@ -186,6 +188,8 @@ ScenarioConfig::ScenarioType ScenarioManager::SelectPullOverScenario(
   }
 
   // check around junction
+  //查看停车点附近的情况，如果交通标志到停车点的距离小于8米，或者目标点到交通标志的距离小于8m，都认为是不合适的停车的
+
   if (pull_over_scenario) {
     constexpr double kDisanceToAvoidJunction = 8.0;  // meter
     for (const auto& overlap : first_encountered_overlap_map_) {
@@ -278,6 +282,9 @@ ScenarioConfig::ScenarioType ScenarioManager::SelectPullOverScenario(
   return default_scenario_type_;
 }
 
+//计算车最前端到stop交通标志的距离，如果当前距离小于进入stop sign scenario的配置时
+//并且当前的场景为LANE_FOLLOW 或者CHANGE_LANE或者PULL_OVER时，可以进入stop sign scenario，
+//其他情况则返回当前状态，如果当前处于一个未知的场景，则返回默认场景LANE_FOLLOW
 ScenarioConfig::ScenarioType ScenarioManager::SelectStopSignScenario(
     const Frame& frame, const hdmap::PathOverlap& stop_sign_overlap) {
   const auto& scenario_config =
@@ -546,9 +553,15 @@ bool ScenarioManager::SelectScenario(
 }
 */
 
+/*
+输入：frame
+输出：无
+功能：将最先遇到的overlaps放入到first_encountered_overlap_map_中
+疑问: 既然叫first，为什么还会有多个？是因为一个地方会有多个标志吗？
+*/
 void ScenarioManager::Observe(const Frame& frame) {
   // init first_encountered_overlap_map_
-  first_encountered_overlap_map_.clear();
+  first_encountered_overlap_map_.clear();//不是一个正常车道，遇到红绿灯或者人行道等，都叫overlap
   const auto& reference_line_info = frame.reference_line_info().front();
   const auto& first_encountered_overlaps =
       reference_line_info.FirstEncounteredOverlaps();
@@ -562,8 +575,12 @@ void ScenarioManager::Observe(const Frame& frame) {
   }
 }
 
+//更新场景
+//输入： 规划起始点与frame
 void ScenarioManager::Update(const common::TrajectoryPoint& ego_point,
                              const Frame& frame) {
+
+  //在每个功能设计时定义了很多状态判断的函数
   CHECK(!frame.reference_line_info().empty());
 
   Observe(frame);
@@ -571,6 +588,12 @@ void ScenarioManager::Update(const common::TrajectoryPoint& ego_point,
   ScenarioDispatch(ego_point, frame);
 }
 
+/*
+输入：规划起始点与frame
+输出： 无
+功能：1. 默认的scenar为LANE_FOLLOW
+     2. 当前版本已经没有了side pass
+*/
 void ScenarioManager::ScenarioDispatch(const common::TrajectoryPoint& ego_point,
                                        const Frame& frame) {
   CHECK(!frame.reference_line_info().empty());
@@ -580,6 +603,7 @@ void ScenarioManager::ScenarioDispatch(const common::TrajectoryPoint& ego_point,
   ScenarioConfig::ScenarioType scenario_type = default_scenario_type_;
 
   // check current_scenario (not switchable)
+  //首先确认当前的stage
   switch (current_scenario_->scenario_type()) {
     case ScenarioConfig::LANE_FOLLOW:
     case ScenarioConfig::CHANGE_LANE:
@@ -604,6 +628,7 @@ void ScenarioManager::ScenarioDispatch(const common::TrajectoryPoint& ego_point,
 
   ////////////////////////////////////////
   // intersection scenarios
+  //十字路口场景,主要是包括红绿灯以及其他交通标志来进行切换
   if (scenario_type == default_scenario_type_) {
     hdmap::PathOverlap* traffic_sign_overlap = nullptr;
     hdmap::PathOverlap* pnc_junction_overlap = nullptr;
@@ -613,6 +638,7 @@ void ScenarioManager::ScenarioDispatch(const common::TrajectoryPoint& ego_point,
     const auto& first_encountered_overlaps =
         reference_line_info.FirstEncounteredOverlaps();
     // note: first_encountered_overlaps already sorted
+    //这里为什么要进行排序呢
     for (const auto& overlap : first_encountered_overlaps) {
       if (overlap.first == ReferenceLineInfo::SIGNAL ||
           overlap.first == ReferenceLineInfo::STOP_SIGN ||
@@ -658,6 +684,7 @@ void ScenarioManager::ScenarioDispatch(const common::TrajectoryPoint& ego_point,
 
   ////////////////////////////////////////
   // CHANGE_LANE scenario
+  //目前Apollo还没有去做
   if (scenario_type == default_scenario_type_) {
     scenario_type = SelectChangeLaneScenario(frame);
   }
@@ -820,6 +847,9 @@ bool ScenarioManager::IsTrafficLightScenario(
       scenario_type == ScenarioConfig::TRAFFIC_LIGHT_UNPROTECTED_RIGHT_TURN);
 }
 
+/*
+输入：frame以及场景
+*/
 void ScenarioManager::UpdatePlanningContext(
     const Frame& frame, const ScenarioConfig::ScenarioType& scenario_type) {
   // BareIntersection scenario

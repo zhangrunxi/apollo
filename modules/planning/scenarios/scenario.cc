@@ -63,6 +63,11 @@ void Scenario::Init() {
   current_stage_ = CreateStage(*stage_config_map_[config_.stage_type(0)]);
 }
 
+/*
+输入：规划起始点，frame
+输出：
+功能：
+*/
 Scenario::ScenarioStatus Scenario::Process(
     const common::TrajectoryPoint& planning_init_point, Frame* frame) {
   if (current_stage_ == nullptr) {
