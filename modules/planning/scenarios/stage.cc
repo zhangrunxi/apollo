@@ -53,14 +53,20 @@ Stage::Stage(const ScenarioConfig::StageConfig& config) : config_(config) {
   next_stage_ = config_.stage_type();
   std::unordered_map<TaskConfig::TaskType, const TaskConfig*, std::hash<int>>
       config_map;
+  
+  //将所有task的config放到一起组成task_config
   for (const auto& task_config : config_.task_config()) {
     config_map[task_config.task_type()] = &task_config;
   }
+  //对于每一种task
   for (int i = 0; i < config_.task_type_size(); ++i) {
     auto task_type = config_.task_type(i);
+
+    //查看对于这种task，有没有对应的config,然后将对应的task push_back到tasks_变量
     CHECK(config_map.find(task_type) != config_map.end())
         << "Task: " << TaskConfig::TaskType_Name(task_type)
         << " used but not configured";
+    
     auto iter = tasks_.find(task_type);
     if (iter == tasks_.end()) {
       auto ptr = TaskFactory::CreateTask(*config_map[task_type]);

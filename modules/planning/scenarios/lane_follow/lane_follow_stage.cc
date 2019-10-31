@@ -157,6 +157,7 @@ Status LaneFollowStage::PlanOnReferenceLine(
   }
   ADEBUG << "planning start point:" << planning_start_point.DebugString();
 
+//运行每一个task
   auto ret = Status::OK();
   for (auto* optimizer : task_list_) {
     const double start_timestamp = Clock::NowInSeconds();
