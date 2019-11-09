@@ -49,7 +49,7 @@ constexpr double kMinObstacleArea = 1e-4;
 PathAssessmentDecider::PathAssessmentDecider(const TaskConfig& config)
     : Decider(config) {}
 
-//这里只是找lane，还没有求解
+//生成的路径又进行了一次筛选，确保合理
 Status PathAssessmentDecider::Process(
     Frame* const frame, ReferenceLineInfo* const reference_line_info) {
   // Sanity checks.
@@ -88,6 +88,8 @@ Status PathAssessmentDecider::Process(
       }
     }
   }
+
+  //调试方法，将耗时打印出来
   const auto& end_time1 = std::chrono::system_clock::now();
   std::chrono::duration<double> diff = end_time1 - end_time0;
   ADEBUG << "Time for path validity checking: " << diff.count() * 1000
@@ -124,6 +126,15 @@ Status PathAssessmentDecider::Process(
   ADEBUG << "Time for path info labeling: " << diff.count() * 1000 << " msec.";
 
   // 3. Pick the optimal path.
+  /*
+  在qp的时候是生成了很多条路径的，这里选择一条最优的，最优的判断条件如下：
+  如果路径不是偏离reference line和road太远，就是合理路径
+  在合理路径上面找到最左边一条和最右边一条
+
+  1. 如果最左边的路径为空 ，返回false?
+  2. 如果最右边的路径为空，返回true?
+  3. 
+  */
   std::sort(valid_path_data.begin(), valid_path_data.end(),
             [](const PathData& lhs, const PathData& rhs) {
               ADEBUG << "Comparing " << lhs.path_label() << " and "
@@ -142,6 +153,8 @@ Status PathAssessmentDecider::Process(
                   lhs.path_label().find("regular") != std::string::npos;
               bool rhs_is_regular =
                   rhs.path_label().find("regular") != std::string::npos;
+
+              //为什么左侧不等于右侧，要返回左侧???
               if (lhs_is_regular != rhs_is_regular) {
                 return lhs_is_regular;
               }
@@ -325,6 +338,13 @@ Status PathAssessmentDecider::Process(
                   reference_line_info);
   return Status::OK();
 }
+
+/*
+对于regular path,需要判断：
+1. 是否大幅度偏离reference line
+2. 是否答复偏离道路
+3. 是否有静态障碍物的碰撞
+*/
 
 bool PathAssessmentDecider::IsValidRegularPath(
     const ReferenceLineInfo& reference_line_info, const PathData& path_data) {

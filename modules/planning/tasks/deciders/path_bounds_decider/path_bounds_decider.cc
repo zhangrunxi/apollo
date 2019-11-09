@@ -426,6 +426,7 @@ std::string PathBoundsDecider::GeneratePullOverPathBound(
   return "";
 }
 
+//应急车道
 std::string PathBoundsDecider::GenerateFallbackPathBound(
     const ReferenceLineInfo& reference_line_info, PathBound* const path_bound) {
   // 1. Initialize the path boundaries to be an indefinitely large area.

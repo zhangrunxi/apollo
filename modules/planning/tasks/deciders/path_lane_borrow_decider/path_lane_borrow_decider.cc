@@ -54,6 +54,8 @@ Status PathLaneBorrowDecider::Process(
 //判断需要借道超车的条件
 bool PathLaneBorrowDecider::IsNecessaryToBorrowLane(
     const Frame& frame, const ReferenceLineInfo& reference_line_info) {
+  
+  //目前已经没有这个场景了
   if (PlanningContext::Instance()
           ->path_decider_info()
           .is_in_path_lane_borrow_scenario()) { //若当前的场景是在借道场景
@@ -77,7 +79,8 @@ bool PathLaneBorrowDecider::IsNecessaryToBorrowLane(
            << PlanningContext::Instance()
                   ->path_decider_info()
                   .front_static_obstacle_id();
-    /*切换车道的条件如下：
+    /*
+    切换车道的条件如下：
     1. 只有一条参考线
     2. 车速在借道允许的最大车速单位内(考虑到速度太快借道不安全)
     3. 当前车道阻塞的障碍物离交叉口还有一段距离

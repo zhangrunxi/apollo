@@ -61,6 +61,7 @@ Status LaneChangeDecider::Process(Frame* frame) {
   double now = Clock::NowInSeconds();
 
   //当前没有更换车道的状态
+  //若当前没有更换车道的状态，则直接反馈ok。这个时候更新的状态是CHANGE_LANE_SUCCESS
   if (!prev_status->has_status()) {
     UpdateStatus(now, ChangeLaneStatus::CHANGE_LANE_SUCCESS,
                  GetCurrentPathId(*reference_line_info));
@@ -69,6 +70,8 @@ Status LaneChangeDecider::Process(Frame* frame) {
 
   //如更换车道，reference line的条数肯定大于1
   bool has_change_lane = reference_line_info->size() > 1;
+
+  //只有一条车道的时候
   if (!has_change_lane) {
     const auto& path_id = reference_line_info->front().Lanes().Id();
     if (prev_status->status() == ChangeLaneStatus::CHANGE_LANE_SUCCESS) {
@@ -82,7 +85,7 @@ Status LaneChangeDecider::Process(Frame* frame) {
       return Status(ErrorCode::PLANNING_ERROR, msg);
     }
     return Status::OK();
-  } else {  // has change lane in reference lines.
+  } else {  // has change lane in reference lines. 这个change lane 感觉更像是由于显示地图中的设置切换lane
 
     //获取当前路径的id,如果没有，说明车没有在任何一条reference line上面
     auto current_path_id = GetCurrentPathId(*reference_line_info);
