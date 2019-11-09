@@ -34,6 +34,7 @@ using apollo::hdmap::HDMapUtil;
 constexpr double kAdcDistanceThreshold = 35.0;  // unit: m
 constexpr double kObstaclesDistanceThreshold = 15.0;
 
+//若当前的障碍物离无人驾驶车太远或者当前障碍物前面还有其他障碍物，则对于当前这个障碍物，无人车是不可以超过去的
 bool IsNonmovableObstacle(const ReferenceLineInfo& reference_line_info,
                           const Obstacle& obstacle) {
   // Obstacle is far away.

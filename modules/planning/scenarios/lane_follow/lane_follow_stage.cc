@@ -108,10 +108,12 @@ void LaneFollowStage::RecordDebugInfo(ReferenceLineInfo* reference_line_info,
   ptr_stats->set_time_ms(time_diff_ms);
 }
 
+//lane follow这个场景的执行
 Stage::StageStatus LaneFollowStage::Process(
     const TrajectoryPoint& planning_start_point, Frame* frame) {
   bool has_drivable_reference_line = false;
 
+  //reference line的条数是由谁决定的？
   ADEBUG << "Number of reference lines:\t"
          << frame->mutable_reference_line_info()->size();
 

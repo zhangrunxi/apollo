@@ -140,11 +140,10 @@ void TaskFactory::Init(const PlanningConfig& config) {
         default_task_config;
   }
 }
-
 std::unique_ptr<Task> TaskFactory::CreateTask(const TaskConfig& task_config) {
   TaskConfig merged_config;
   if (default_task_configs_.find(task_config.task_type()) !=
-      default_task_configs_.end()) {
+      default_task_configs_.end()) { 
     merged_config = default_task_configs_[task_config.task_type()];
   }
   merged_config.MergeFrom(task_config);

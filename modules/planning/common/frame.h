@@ -182,7 +182,7 @@ class Frame {
 
   void ReadTrafficLights();
 
- private:
+private:
   uint32_t sequence_num_ = 0;
   LocalView local_view_;
   const hdmap::HDMap *hdmap_ = nullptr;

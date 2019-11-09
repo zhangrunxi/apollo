@@ -58,15 +58,19 @@ using LaneType = ReferenceLineInfo::LaneType;
 PathBoundsDecider::PathBoundsDecider(const TaskConfig& config)
     : Decider(config) {}
 
+//寻找当前路径的边界？
+//主要是生成一个储备的路径，会比当前的路径要宽，而且对于停车场景，路径的宽度也需要另外考虑
+//既然frame里面有reference line的信息，为什么还要重新在传入一份？
 Status PathBoundsDecider::Process(
     Frame* const frame, ReferenceLineInfo* const reference_line_info) {
-  // Sanity checks.
+  // Sanity checks.合理性检查
   CHECK_NOTNULL(frame);
   CHECK_NOTNULL(reference_line_info);
   std::vector<PathBoundary> candidate_path_boundaries;
   // const TaskConfig& config = Decider::config_;
 
   // Initialization.
+  //获取规划起始点的车道宽度
   InitPathBoundsDecider(*frame, *reference_line_info);
 
   // Generate the fallback path boundary.
@@ -218,6 +222,8 @@ Status PathBoundsDecider::Process(
   return Status::OK();
 }
 
+//reference_line_info与reference_line的区别是什么？
+
 void PathBoundsDecider::InitPathBoundsDecider(
     const Frame& frame, const ReferenceLineInfo& reference_line_info) {
   const ReferenceLine& reference_line = reference_line_info.reference_line();
@@ -238,7 +244,9 @@ void PathBoundsDecider::InitPathBoundsDecider(
   adc_frenet_s_ = adc_frenet_position.s();
   adc_frenet_l_ = adc_frenet_position.l();
   double offset_to_map = 0.0;
-  reference_line.GetOffsetToMap(adc_frenet_s_, &offset_to_map);
+  
+  //reference line不一定在道路中间
+  reference_line.GetOffsetToMap(adc_frenet_s_, &offset_to_map); //相对于地图的l是如何算的？应该计算的是当前车到中心线的距离，但是这里看着不太对
   adc_l_to_lane_center_ = adc_frenet_l_ + offset_to_map;
   auto adc_sl_info = reference_line.ToFrenetFrame(planning_start_point);
   adc_frenet_sd_ = adc_sl_info.first[1];
@@ -247,7 +255,7 @@ void PathBoundsDecider::InitPathBoundsDecider(
   // ADC's lane width.
   double lane_left_width = 0.0;
   double lane_right_width = 0.0;
-  if (!reference_line.GetLaneWidth(adc_frenet_s_, &lane_left_width,
+  if (!reference_line.GetLaneWidth(adc_frenet_s_, &lane_left_width, //从地图上面获取车道的宽度
                                    &lane_right_width)) {
     AWARN << "Failed to get lane width at planning start point.";
     adc_lane_width_ = kDefaultLaneWidth;
@@ -691,7 +699,7 @@ bool PathBoundsDecider::InitPathBoundary(const ReferenceLine& reference_line,
                                                FLAGS_trajectory_time_length),
                  reference_line.Length());
        curr_s += kPathBoundsDeciderResolution) {
-    path_bound->emplace_back(curr_s, std::numeric_limits<double>::lowest(),
+    path_bound->emplace_back(curr_s, std::numeric_limits<double>::lowest(), //极值，左右两侧都是极值
                              std::numeric_limits<double>::max());
   }
 
@@ -762,26 +770,34 @@ bool PathBoundsDecider::GetBoundaryFromLanesAndADC(
   // Sanity checks.
   CHECK_NOTNULL(path_bound);
   CHECK(!path_bound->empty());
+  //获取reference line
   const ReferenceLine& reference_line = reference_line_info.reference_line();
 
   // Go through every point, update the boundary based on lane info and
   // ADC's position.
   double past_lane_left_width = adc_lane_width_ / 2.0;
   double past_lane_right_width = adc_lane_width_ / 2.0;
+
   int path_blocked_idx = -1;
-  bool borrowing_reverse_lane = false;
+
+  bool borrowing_reverse_lane = false; //
+
   for (size_t i = 0; i < path_bound->size(); ++i) {
     double curr_s = std::get<0>((*path_bound)[i]);
     // 1. Get the current lane width at current point.
     double curr_lane_left_width = 0.0;
     double curr_lane_right_width = 0.0;
+    
+    //直接通过地图获取路的宽度
     if (!reference_line.GetLaneWidth(curr_s, &curr_lane_left_width,
                                      &curr_lane_right_width)) {
       AWARN << "Failed to get lane width at s = " << curr_s;
       curr_lane_left_width = past_lane_left_width;
       curr_lane_right_width = past_lane_right_width;
+
     } else {
       double offset_to_lane_center = 0.0;
+      //相对于地图，参考线有可能是偏的
       reference_line.GetOffsetToMap(curr_s, &offset_to_lane_center);
       curr_lane_left_width += offset_to_lane_center;
       curr_lane_right_width -= offset_to_lane_center;
@@ -794,6 +810,7 @@ bool PathBoundsDecider::GetBoundaryFromLanesAndADC(
     hdmap::Id neighbor_lane_id;
     if (lane_borrow_info == LaneBorrowInfo::LEFT_BORROW) {
       // Borrowing left neighbor lane.
+      //这里有车道信息，但是不包括虚线和实线等
       if (reference_line_info.GetNeighborLaneInfo(LaneType::LeftForward, curr_s,
                                                   &neighbor_lane_id,
                                                   &curr_neighbor_lane_width)) {
@@ -832,6 +849,7 @@ bool PathBoundsDecider::GetBoundaryFromLanesAndADC(
                               adc_frenet_ld_ * adc_frenet_ld_ /
                               kMaxLateralAccelerations / 2.0;
 
+    //如果可以左侧借道，就把左侧路的宽度加进来
     double curr_left_bound_lane =
         curr_lane_left_width + (lane_borrow_info == LaneBorrowInfo::LEFT_BORROW
                                     ? curr_neighbor_lane_width

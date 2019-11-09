@@ -282,7 +282,7 @@ ScenarioConfig::ScenarioType ScenarioManager::SelectPullOverScenario(
   return default_scenario_type_;
 }
 
-//计算车最前端到stop交通标志的距离，如果当前距离小于进入stop sign scenario的配置时
+//计算车最前端到stop交通标志的距离，如果当前距离小于进入stop sign scenario的配置
 //并且当前的场景为LANE_FOLLOW 或者CHANGE_LANE或者PULL_OVER时，可以进入stop sign scenario，
 //其他情况则返回当前状态，如果当前处于一个未知的场景，则返回默认场景LANE_FOLLOW
 ScenarioConfig::ScenarioType ScenarioManager::SelectStopSignScenario(
@@ -603,7 +603,6 @@ void ScenarioManager::ScenarioDispatch(const common::TrajectoryPoint& ego_point,
   ScenarioConfig::ScenarioType scenario_type = default_scenario_type_;
 
   // check current_scenario (not switchable)
-  //首先确认当前的stage
   switch (current_scenario_->scenario_type()) {
     case ScenarioConfig::LANE_FOLLOW:
     case ScenarioConfig::CHANGE_LANE:
@@ -634,11 +633,13 @@ void ScenarioManager::ScenarioDispatch(const common::TrajectoryPoint& ego_point,
     hdmap::PathOverlap* pnc_junction_overlap = nullptr;
     ReferenceLineInfo::OverlapType overlap_type;
 
+    //找到第一条reference line
     const auto& reference_line_info = frame.reference_line_info().front();
     const auto& first_encountered_overlaps =
         reference_line_info.FirstEncounteredOverlaps();
     // note: first_encountered_overlaps already sorted
     //这里为什么要进行排序呢
+    //在交通标志或者交通灯前面要切换scenario
     for (const auto& overlap : first_encountered_overlaps) {
       if (overlap.first == ReferenceLineInfo::SIGNAL ||
           overlap.first == ReferenceLineInfo::STOP_SIGN ||
@@ -759,9 +760,9 @@ void ScenarioManager::ScenarioSelfVote(const common::TrajectoryPoint& ego_point,
     }
 
     // traffic_light scenarios
-    if (overlap.first == ReferenceLineInfo::SIGNAL) {
-      preferred_scenarios.push_back(ScenarioConfig::TRAFFIC_LIGHT_PROTECTED);
-      preferred_scenarios.push_back(
+    if (overlap.first =stop_sign= ReferenceLineInfo::SIGNAL) {
+      preferred_scenaristop_signos.push_back(ScenarioConfig::TRAFFIC_LIGHT_PROTECTED);
+      preferred_scenaristop_signos.push_back(
           ScenarioConfig::TRAFFIC_LIGHT_UNPROTECTED_LEFT_TURN);
       preferred_scenarios.push_back(
           ScenarioConfig::TRAFFIC_LIGHT_UNPROTECTED_RIGHT_TURN);
@@ -985,9 +986,9 @@ void ScenarioManager::UpdatePlanningContextTrafficLightScenario(
       ADEBUG << "Update PlanningContext with first_encountered traffic_light["
              << traffic_light_overlap.object_id << "] start_s["
              << traffic_light_overlap.start_s << "]";
-    }
-  }
-}
+    }stop_sign
+  }stop_sign
+}stop_sign
 
 // update: pull_over status in PlanningContext
 void ScenarioManager::UpdatePlanningContextPullOverScenario(

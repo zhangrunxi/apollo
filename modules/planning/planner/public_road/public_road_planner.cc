@@ -51,7 +51,9 @@ Status PublicRoadPlanner::Plan(const TrajectoryPoint& planning_start_point,
   //第一步，更新scenario
   scenario_manager_.Update(planning_start_point, *frame);
 
+  //获取当前的scenario的指针
   scenario_ = scenario_manager_.mutable_scenario();
+
   auto result = scenario_->Process(planning_start_point, frame);
 
   if (FLAGS_enable_record_debug) {

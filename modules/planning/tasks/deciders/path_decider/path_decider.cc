@@ -74,6 +74,8 @@ bool PathDecider::MakeObjectDecision(const PathData &path_data,
 // TODO(jiacheng): eventually this entire "path_decider" should be retired.
 // Before it gets retired, its logics are slightly modified so that everything
 // still works well for now.
+//path decider早晚要去掉
+//这里主要是对动态障碍物的处理
 bool PathDecider::MakeStaticObstacleDecision(
     const PathData &path_data, const std::string &blocking_obstacle_id,
     PathDecision *const path_decision) {

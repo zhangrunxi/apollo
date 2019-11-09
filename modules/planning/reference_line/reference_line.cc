@@ -474,6 +474,7 @@ bool ReferenceLine::GetLaneWidth(const double s, double* const lane_left_width,
   return true;
 }
 
+//reference line上面的l不应该都是0吗？看来是不一定
 bool ReferenceLine::GetOffsetToMap(const double s, double* l_offset) const {
   if (map_path_.path_points().empty()) {
     return false;

@@ -74,10 +74,12 @@ Scenario::ScenarioStatus Scenario::Process(
     AWARN << "Current stage is a null pointer.";
     return STATUS_UNKNOWN;
   }
+  //如果当前的stage是no stage， 说明当前stage已经执行完成
   if (current_stage_->stage_type() == ScenarioConfig::NO_STAGE) {
     scenario_status_ = STATUS_DONE;
     return scenario_status_;
   }
+  //执行当前场景下的各个task
   auto ret = current_stage_->Process(planning_init_point, frame);
   switch (ret) {
     case Stage::ERROR: {

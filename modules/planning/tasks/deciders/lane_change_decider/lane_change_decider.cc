@@ -34,33 +34,40 @@ using apollo::common::util::StrCat;
 LaneChangeDecider::LaneChangeDecider(const TaskConfig& config)
     : Decider(config) {}
 
+//execute调用的是process
+//通过PrioritizeChangeLane函数将当前的reference line路径修改掉，
+//目前不清楚是直接修改掉还是接到当前的reference line 上面去
 Status LaneChangeDecider::Process(Frame* frame) {
   // Sanity checks.
   CHECK_NOTNULL(frame);
   std::list<ReferenceLineInfo>* reference_line_info =
-      frame->mutable_reference_line_info();
+      frame->mutable_reference_line_info(); //reference line也是通过frame获得的
   if (reference_line_info->empty()) {
     const std::string msg = "Reference lines empty.";
     AERROR << msg;
     return Status(ErrorCode::PLANNING_ERROR, msg);
   }
 
-  if (FLAGS_reckless_change_lane) {
+  //如果无论如何都要更换车道,这个参数的意义是什么呢？
+  if (FLAGS_reckless_change_lane) { 
     PrioritizeChangeLane(reference_line_info);
     return Status::OK();
   }
 
+  //planning context保存的是当前的信息
   auto* prev_status = PlanningContext::Instance()
                           ->mutable_planning_status()
                           ->mutable_change_lane();
   double now = Clock::NowInSeconds();
 
+  //当前没有更换车道的状态
   if (!prev_status->has_status()) {
     UpdateStatus(now, ChangeLaneStatus::CHANGE_LANE_SUCCESS,
                  GetCurrentPathId(*reference_line_info));
     return Status::OK();
   }
 
+  //如更换车道，reference line的条数肯定大于1
   bool has_change_lane = reference_line_info->size() > 1;
   if (!has_change_lane) {
     const auto& path_id = reference_line_info->front().Lanes().Id();
@@ -76,6 +83,8 @@ Status LaneChangeDecider::Process(Frame* frame) {
     }
     return Status::OK();
   } else {  // has change lane in reference lines.
+
+    //获取当前路径的id,如果没有，说明车没有在任何一条reference line上面
     auto current_path_id = GetCurrentPathId(*reference_line_info);
     if (current_path_id.empty()) {
       const std::string msg = "The vehicle is not on any reference line";

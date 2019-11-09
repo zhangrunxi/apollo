@@ -49,6 +49,7 @@ constexpr double kMinObstacleArea = 1e-4;
 PathAssessmentDecider::PathAssessmentDecider(const TaskConfig& config)
     : Decider(config) {}
 
+//这里只是找lane，还没有求解
 Status PathAssessmentDecider::Process(
     Frame* const frame, ReferenceLineInfo* const reference_line_info) {
   // Sanity checks.
@@ -67,8 +68,17 @@ Status PathAssessmentDecider::Process(
   std::vector<PathData> valid_path_data;
   for (const auto& curr_path_data : candidate_path_data) {
     // RecordDebugInfo(curr_path_data, curr_path_data.path_label(),
-    //                 reference_line_info);
+    //                 reference_line_info);\
+
+    /*
+    string::find()函数：是一个字符或字符串查找函数，该函数有唯一的返回类型，
+    即string::size_type，即一个无符号整形类型，可能是整数也可能是长整数。
+    如果查找成功，返回按照查找规则找到的第一个字符或者子串的位置；
+    如果查找失败，返回string::npos,即-1（当然打印出的结果不是-1，而是一个很大的数值，那是因为它是无符号的）
+    */
+    //fallback 是什么path
     if (curr_path_data.path_label().find("fallback") != std::string::npos) {
+      //查看是否偏离reference line
       if (IsValidFallbackPath(*reference_line_info, curr_path_data)) {
         valid_path_data.push_back(curr_path_data);
       }
@@ -91,6 +101,7 @@ Status PathAssessmentDecider::Process(
     SetPathInfo(*reference_line_info, &curr_path_data);
     // Trim all the lane-borrowing paths so that it ends with an in-lane
     // position.
+    //如果是侧方位停车
     if (curr_path_data.path_label().find("pullover") == std::string::npos) {
       TrimTailingOutLanePoints(&curr_path_data);
     }
@@ -372,6 +383,7 @@ void PathAssessmentDecider::SetPathInfo(
     SetPathPointType(reference_line_info, *path_data, &path_decision);
   }
   // SetObstacleDistance(reference_line_info, *path_data, &path_decision);
+  //都设置成了unknown?
   path_data->SetPathPointDecisionGuide(path_decision);
 }
 

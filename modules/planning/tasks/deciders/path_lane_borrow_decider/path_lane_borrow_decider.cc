@@ -33,6 +33,7 @@ constexpr double kJunctionClearanceDist = 15.0;
 PathLaneBorrowDecider::PathLaneBorrowDecider(const TaskConfig& config)
     : Decider(config) {}
 
+//借道？
 Status PathLaneBorrowDecider::Process(
     Frame* const frame, ReferenceLineInfo* const reference_line_info) {
   // Sanity checks.
@@ -50,15 +51,16 @@ Status PathLaneBorrowDecider::Process(
   return Status::OK();
 }
 
+//判断需要借道超车的条件
 bool PathLaneBorrowDecider::IsNecessaryToBorrowLane(
     const Frame& frame, const ReferenceLineInfo& reference_line_info) {
   if (PlanningContext::Instance()
           ->path_decider_info()
-          .is_in_path_lane_borrow_scenario()) {
+          .is_in_path_lane_borrow_scenario()) { //若当前的场景是在借道场景
     // If originally borrowing neighbor lane:
     if (PlanningContext::Instance()
             ->path_decider_info()
-            .able_to_use_self_lane_counter() >= 6) {
+            .able_to_use_self_lane_counter() >= 6) { //在借道的车道上面的时候，看到当前车道还可以使用不少时间，就切回当前车道
       // If have been able to use self-lane for some time, then switch to
       // non-lane-borrowing.
       PlanningContext::Instance()
@@ -75,6 +77,14 @@ bool PathLaneBorrowDecider::IsNecessaryToBorrowLane(
            << PlanningContext::Instance()
                   ->path_decider_info()
                   .front_static_obstacle_id();
+    /*切换车道的条件如下：
+    1. 只有一条参考线
+    2. 车速在借道允许的最大车速单位内(考虑到速度太快借道不安全)
+    3. 当前车道阻塞的障碍物离交叉口还有一段距离
+    4. 障碍物长时间在那里
+    5. 障碍物依然在那里并且离终点还有一段距离(应该是怕借道以后离终点太近回不来)
+    6. 若当前的障碍物离无人驾驶车太远或者当前障碍物前面还有其他障碍物，则对于当前这个障碍物，无人车是不可以超过去的
+    */
     if (HasSingleReferenceLine(frame) && IsWithinSidePassingSpeedADC(frame) &&
         IsBlockingObstacleFarFromIntersection(reference_line_info) &&
         IsLongTermBlockingObstacle() &&
