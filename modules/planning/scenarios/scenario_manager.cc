@@ -189,7 +189,6 @@ ScenarioConfig::ScenarioType ScenarioManager::SelectPullOverScenario(
 
   // check around junction
   //查看停车点附近的情况，如果交通标志到停车点的距离小于8米，或者目标点到交通标志的距离小于8m，都认为是不合适的停车的
-
   if (pull_over_scenario) {
     constexpr double kDisanceToAvoidJunction = 8.0;  // meter
     for (const auto& overlap : first_encountered_overlap_map_) {

@@ -33,7 +33,6 @@ constexpr double kJunctionClearanceDist = 15.0;
 PathLaneBorrowDecider::PathLaneBorrowDecider(const TaskConfig& config)
     : Decider(config) {}
 
-//借道？
 Status PathLaneBorrowDecider::Process(
     Frame* const frame, ReferenceLineInfo* const reference_line_info) {
   // Sanity checks.

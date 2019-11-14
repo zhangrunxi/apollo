@@ -24,9 +24,9 @@
 #include <utility>
 #include <vector>
 
-#include "modules/planning/math/piecewise_jerk/piecewise_jerk_problem.h"
+#include "planning/trajectory_gen/math/piecewise_jerk/piecewise_jerk_problem.h"
 
-namespace apollo {
+namespace COWA {
 namespace planning {
 
 /*
@@ -76,4 +76,4 @@ class PiecewiseJerkPathProblem : public PiecewiseJerkProblem {
 };
 
 }  // namespace planning
-}  // namespace apollo
+}  // namespace COWA

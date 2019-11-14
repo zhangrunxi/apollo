@@ -14,13 +14,13 @@
  * limitations under the License.
  *****************************************************************************/
 
-#include "modules/planning/math/piecewise_jerk/piecewise_jerk_problem.h"
+#include "planning/trajectory_gen/math/piecewise_jerk/piecewise_jerk_problem.h"
 
 #include <algorithm>
 
-#include "cyber/common/log.h"
+#include "logging.h"
 
-#include "modules/planning/common/planning_gflags.h"
+#include "planning/trajectory_gen/common/planning_gflags.h"
 
 namespace apollo {
 namespace planning {
@@ -305,4 +305,4 @@ OSQPSettings* PiecewiseJerkProblem::SolverDefaultSettings() {
 }
 
 }  // namespace planning
-}  // namespace apollo
+}  // namespace COWA

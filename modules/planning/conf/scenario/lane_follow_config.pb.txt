@@ -13,8 +13,6 @@ stage_config: {
 
   task_type: PATH_DECIDER
 
-
-
   task_type: RULE_BASED_STOP_DECIDER
 
 
